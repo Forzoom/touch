@@ -4,7 +4,7 @@ const webpack = require('webpack')
 process.env.NODE_ENV = 'production'; // 对于vue-loader代码有效
 
 module.exports = {
-	entry: '../index.js',
+	entry: './index.js',
 	output: {
 		path: path.resolve(__dirname, '../dist'),
 		filename: 'touch.js',
