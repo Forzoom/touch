@@ -1,12 +1,13 @@
 {
   "name": "@forzoom/touch",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "touch component",
   "main": "dist/touch.min.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --config ./build/webpack.config.prod.js",
-    "dev": "webpack --config ./build/webpack.config.dev.js"
+    "dev": "webpack --config ./build/webpack.config.dev.js",
+    "release": "npm run build && npm run dev"
   },
   "author": "Forzoom",
   "license": "MIT",

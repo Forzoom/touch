@@ -1,9 +1,9 @@
 <template>
     
     <div class="ro-touch"
-        @touchstart="onTouchStart" 
-        @touchmove.prevent="onTouchMove" 
-        @touchend="onTouchEnd" 
+        @touchstart="onTouchStart"
+        @touchmove.prevent="onTouchMove"
+        @touchend="onTouchEnd"
     >
         <slot></slot>
     </div>
@@ -18,20 +18,13 @@
         return event.touches[0];
     }
 
-    const Status = {
-        no: 'no',
-        down: 'down',
-        move: 'move',
-        up: 'up',
-    };
-
     /**
      * 事件
-     * touch-down
-     * touch-move
-     * touch-slide
+     * touch-down(startPos, currentPos)
+     * touch-move(x, y)
+     * touch-slide(startPos, currentPost)
      * touch-fling
-     * touch-up
+     * touch-up(startPos, currentPos)
      */
     export default {
         name: 'ROTouch',
@@ -49,7 +42,7 @@
                 ], // 速度记录
                 speedRecordIdx: 0,
 
-                minFlingSpeed: 0.2, // px/millsecond
+                minFlingSpeed: 1, // px/millsecond
                 maxFlingSpeed: 1,
 
                 // touch.move只返回offset
@@ -66,7 +59,6 @@
                     x: 0,
                     y: 0,
                 }, // 每次touchMove的情况下，对应的pageX/pageY都是currentPos
-                status: Status.no, // 当前的状态
                 lastRecordTime: -1, // 上次数据记录时间
             };
         },
@@ -83,7 +75,6 @@
 
                 // 发生点击的开始
                 // 分别创建两个不同
-                self.status = Status.down;
                 self.$emit('touch-down', {
                     startPos: Object.assign({}, self.startPos),
                     currentPos: Object.assign({}, self.currentPos),
@@ -105,51 +96,34 @@
                 const pageY = touch.clientY;
                 const offsetX = pageX - self.currentPos.x;
                 const offsetY = pageY - self.currentPos.y;
+                self.currentPos.x = pageX;
+                self.currentPos.y = pageY;
 
-                self.status = Status.move;
                 self.$emit('touch-move', {
                     x: offsetX,
                     y: offsetY,
                 });
-                // 当发生了touchMove的情况下，需要一个touch.move事件，对于slide的情况下，需要整体的长度问题
-                if (self.status === Status.move) {
-                    self.currentPos.x = pageX;
-                    self.currentPos.y = pageY;
-                    self.$emit('touch-slide', {
-                        startPos: Object.assign({}, self.startPos),
-                        currentPos: Object.assign({}, self.currentPos),
-                    });
-                }
 
-                const timeNow = Date.now();
-                const duration = timeNow - self.lastRecordTime;
-
-                self.recordSpeed(offsetY, duration);
+                self.recordSpeed(offsetX);
                 // preventDefault
                 // event.preventDefault();
             },
-
-            // 使用var的方式，可能会由变量提升的问题
-            // 在这里使用var touchEndHandler = functino() {}会出现问题，因为函数体并没有被提升
             onTouchEnd: function(event) {
                 const touch = event.changedTouches[0];
                 const self = this;
 
-                self.status = Status.up;
-
                 // const pageX = touch.clientX;
-                const pageY = touch.clientY;
+                // const pageY = touch.clientY;
                 // const offsetX = pageX - self.currentPos.x;
-                const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
+                // const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
                 self.currentPos.x = touch.clientX;
                 self.currentPos.y = touch.clientY;
 
-                const timeNow = Date.now();
-                const duration = timeNow - self.lastRecordTime;
-
-                self.recordSpeed(offsetY, duration);
                 const speed = (self.speedRecord[0] + self.speedRecord[1]) / 2;
-
+                self.$emit('touch-up', {
+                    startPos: Object.assign({}, self.startPos),
+                    currentPos: Object.assign({}, self.currentPos),
+                });
                 if (Math.abs(speed) > self.minFlingSpeed) {
                     self.$emit('touch-fling', {
                         startPos: Object.assign({}, self.startPos),
@@ -157,25 +131,27 @@
                         speed,
                     });
                     self.speedRecord[0] = self.speedRecord[1] = 0;
-                } else {
+                } else if (Math.abs(self.currentPos.x - self.startPos.x) > 0) {
                     self.$emit('touch-slide', {
                         startPos: Object.assign({}, self.startPos),
                         currentPos: Object.assign({}, self.currentPos),
                     });
-                    self.$emit('touch-up', {
-                        startPos: Object.assign({}, self.startPos),
-                        currentPos: Object.assign({}, self.currentPos),
-                    });
                 }
+
+                // clearSpeed
+                self.speedRecord[0] = self.speedRecord[1] = 0;
             },
             /*
              * @description 记录速度，暂时没有用，因为fling没有使用
              */
-            recordSpeed: function(offset, duration) {
+            recordSpeed: function(offset) {
                 const self = this;
+                const now = Date.now();
+                const duration = now - self.lastRecordTime;
                 const speed = offset / duration;
-                self.speedRecord[self.speedRecordIdx++] = speed;
-                self.speedRecordIdx &= 1; // 让speedRecordIdx保存为0或者1的情况
+                // 记录数据
+                self.speedRecord[(self.speedRecordIdx++) & 1] = speed; // 让speedRecordIdx保存为0或者1的情况
+                self.lastRecordTime = now;
             },
         },
         mounted: function() {
