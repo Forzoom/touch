@@ -1,6 +1,7 @@
 <template>
     
     <div class="ro-touch"
+        style="width: 100%;height: 100%;"
         @touchstart="onTouchStart"
         @touchmove.prevent="onTouchMove"
         @touchend="onTouchEnd"
@@ -161,10 +162,3 @@
         },
     };
 </script>
-
-<style>
-    .ro-touch {
-        width: 100%;
-        height: 100%;
-    }
-</style>
