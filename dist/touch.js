@@ -120,6 +120,10 @@ Object.defineProperty(exports, "__esModule", {
 
 var _touchHub = __webpack_require__(3);
 
+var _touchHub2 = _interopRequireDefault(_touchHub);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 /**
  * 事件
  * touch-down(startPos, currentPos)
@@ -132,7 +136,7 @@ exports.default = {
     name: 'ROTouch',
     data: function data() {
         return {
-            hub: new _touchHub.TouchHub()
+            hub: new _touchHub2.default()
         };
     },
     created: function created() {
@@ -152,6 +156,7 @@ exports.default = {
         vm.hub.onTouchFling(function (res) {
             return vm.$emit('touch-fling', res);
         });
+        // this.hub.work(false);
     },
 
     mounted: function mounted() {
@@ -192,6 +197,9 @@ var assign = Object.assign;
 
 var noop = function noop() {};
 
+var AXIS_X = 1;
+var AXIS_Y = 2;
+
 // 对于changedTouches
 // 对于touchEnd来说会出现touches为end
 // 对于touchStart来说，changedTouches失败了
@@ -208,7 +216,7 @@ function getTouches(event) {
  * touch-up(startPos, currentPos)
  */
 
-var TouchHub = exports.TouchHub = function () {
+var TouchHub = function () {
 
     /**
      * onTouchDown
@@ -220,33 +228,43 @@ var TouchHub = exports.TouchHub = function () {
     function TouchHub() {
         _classCallCheck(this, TouchHub);
 
-        this.speedRecord = [0, 0]; // 速度记录
-        this.speedRecordIdx = 0;
+        var self = this;
+        // 是否停止检测
+        self.active = true;
 
-        this.minFlingSpeed = 1; // px/millsecond
-        this.maxFlingSpeed = 1;
+        self.speedX = [0, 0]; // 速度记录
+        self.speedXIdx = 0;
+        self.speedY = [0, 0];
+        self.speedYIdx = 0;
+
+        self.minFlingSpeed = 1; // px/millsecond
+        self.maxFlingSpeed = 1;
 
         /* 主要依赖：CSSOM/gBCR */
 
         // 所有的状态
-        this.startPos = {
+        self.startPos = {
             x: 0,
             y: 0
         }; // touch开始的位置，对应的pageX,pageY
-        this.currentPos = {
+        self.currentPos = {
             x: 0,
             y: 0
         }; // 每次touchMove的情况下，对应的pageX/pageY都是currentPos
-        this.lastRecordTime = -1, // 上次数据记录时间
-        this._down = this._up = this._move = this._slide = this._fling = noop;
+        self.lastRecordTime = -1, // 上次数据记录时间
+        self._down = self._up = self._move = self._slide = self._fling = noop;
     }
 
     _createClass(TouchHub, [{
         key: "start",
         value: function start(event) {
+            var self = this;
+            if (!self.active) {
+                return;
+            }
+
             // 获得当前的位置数据
             var touch = event.changedTouches[0]; // todo: 这里为什么使用changedTouches
-            var self = this;
             var x = touch.clientX;
             var y = touch.clientY;
             self._setStartPosition(x, y);
@@ -254,17 +272,20 @@ var TouchHub = exports.TouchHub = function () {
 
             // 发生点击的开始
             // 分别创建两个不同
-            self.onTouchDown({
+            self._down({
                 startPos: assign({}, self.startPos),
                 currentPos: assign({}, self.currentPos)
             });
-            // event.preventDefault();
 
             self.lastRecordTime = Date.now();
         }
     }, {
         key: "move",
         value: function move(event) {
+            if (!this.active) {
+                return;
+            }
+
             var touch = getTouches(event);
             var self = this;
             var pageX = touch.clientX;
@@ -273,18 +294,23 @@ var TouchHub = exports.TouchHub = function () {
             var offsetY = pageY - self.currentPos.y;
             self._setCurrentPosition(pageX, pageY);
 
-            self.onTouchMove({
+            self._move({
                 x: offsetX,
                 y: offsetY
             });
 
-            self.recordSpeed(offsetX);
+            self.recordSpeed(offsetX, AXIS_X);
+            self.recordSpeed(offsetY, AXIS_Y);
             // preventDefault
-            // event.preventDefault();
+            event.preventDefault();
         }
     }, {
         key: "end",
         value: function end(event) {
+            if (!this.active) {
+                return;
+            }
+
             var touch = event.changedTouches[0];
             var self = this;
 
@@ -294,38 +320,47 @@ var TouchHub = exports.TouchHub = function () {
             // const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
             self._setCurrentPosition(touch.clientX, touch.clientY);
 
-            var speed = (self.speedRecord[0] + self.speedRecord[1]) / 2;
-            self.onTouchUp({
+            var speedX = (self.speedX[0] + self.speedX[1]) / 2;
+            self._up({
                 startPos: assign({}, self.startPos),
                 currentPos: assign({}, self.currentPos)
             });
-            if (Math.abs(speed) > self.minFlingSpeed) {
-                self.onTouchFling({
+            if (Math.abs(speedX) > self.minFlingSpeed) {
+                self._fling({
                     startPos: assign({}, self.startPos),
                     currentPos: assign({}, self.currentPos),
-                    speed: speed
+                    speedX: speedX
                 });
-                self.speedRecord[0] = self.speedRecord[1] = 0;
+                self.speedX[0] = self.speedX[1] = 0;
             } else if (Math.abs(self.currentPos.x - self.startPos.x) > 0) {
-                self.onTouchSlide({
+                self._slide({
                     startPos: assign({}, self.startPos),
                     currentPos: assign({}, self.currentPos)
                 });
             }
 
             // clearSpeed
-            self.speedRecord[0] = self.speedRecord[1] = 0;
+            self.speedX[0] = self.speedX[1] = 0;
         }
     }, {
         key: "recordSpeed",
-        value: function recordSpeed() {
+        value: function recordSpeed(offset, axis) {
             var self = this;
             var now = Date.now();
             var duration = now - self.lastRecordTime;
             var speed = offset / duration;
             // 记录数据
-            self.speedRecord[self.speedRecordIdx++ & 1] = speed; // 让speedRecordIdx保存为0或者1的情况
+            if (axis === AXIS_X) {
+                self.speedX[self.speedXIdx++ & 1] = speed; // 让speedIdx保存为0或者1的情况
+            } else if (axis === AXIS_Y) {
+                self.speedY[self.speedYIdx++ & 1] = speed; // 让speedIdx保存为0或者1的情况
+            }
             self.lastRecordTime = now;
+        }
+    }, {
+        key: "work",
+        value: function work(active) {
+            this.active = active;
         }
     }, {
         key: "_setStartPosition",
@@ -373,6 +408,8 @@ var TouchHub = exports.TouchHub = function () {
 
     return TouchHub;
 }();
+
+exports.default = TouchHub;
 
 /***/ }),
 /* 4 */
@@ -487,7 +524,6 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
         _vm.hub.start($event)
       },
       "touchmove": function($event) {
-        $event.preventDefault();
         _vm.hub.move($event)
       },
       "touchend": function($event) {

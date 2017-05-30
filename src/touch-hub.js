@@ -5,9 +5,14 @@ type Position = {
     y: number
 };
 
+type AXIS = number;
+
 const assign = Object.assign;
 
-function noop() {};
+const noop = () => {};
+
+const AXIS_X = 1;
+const AXIS_Y = 2;
 
 // 对于changedTouches
 // 对于touchEnd来说会出现touches为end
@@ -122,7 +127,8 @@ export default class TouchHub {
             y: offsetY,
         });
 
-        self.recordSpeed(offsetX);
+        self.recordSpeed(offsetX, AXIS_X);
+        self.recordSpeed(offsetY, AXIS_Y);
         // preventDefault
         event.preventDefault();
     }
@@ -164,13 +170,17 @@ export default class TouchHub {
         self.speedX[0] = self.speedX[1] = 0;
     }
 
-    recordSpeed(offset: number): void {
+    recordSpeed(offset: number, axis: AXIS): void {
         const self = this;
         const now = Date.now();
         const duration = now - self.lastRecordTime;
         const speed = offset / duration;
         // 记录数据
-        self.speedX[(self.speedXIdx++) & 1] = speed; // 让speedIdx保存为0或者1的情况
+        if (axis === AXIS_X) {
+            self.speedX[(self.speedXIdx++) & 1] = speed; // 让speedIdx保存为0或者1的情况
+        } else if (axis === AXIS_Y) {
+            self.speedY[(self.speedYIdx++) & 1] = speed; // 让speedIdx保存为0或者1的情况
+        }
         self.lastRecordTime = now;
     }
 

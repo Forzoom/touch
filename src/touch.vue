@@ -3,7 +3,7 @@
     <div class="ro-touch"
         style="width: 100%;height: 100%;"
         @touchstart="hub.start($event)"
-        @touchmove.prevent="hub.move($event)"
+        @touchmove="hub.move($event)"
         @touchend="hub.end($event)"
     >
         <slot></slot>
@@ -11,9 +11,7 @@
 </template>
 
 <script>
-    import {
-        TouchHub,
-    } from './touch-hub.js';
+    import TouchHub from './touch-hub.js';
     /**
      * 事件
      * touch-down(startPos, currentPos)
