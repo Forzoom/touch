@@ -72,6 +72,7 @@ Touch是vue组件
 
 1. touch-hub添加work函数
 2. speed支持对于x,y两个轴
+3. 添加flow对于touch-hub进行简单的类型检查
 
 ##### BreakChange
 
