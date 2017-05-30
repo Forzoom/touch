@@ -80,11 +80,11 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Component = __webpack_require__(3)(
+var Component = __webpack_require__(4)(
   /* script */
   __webpack_require__(2),
   /* template */
-  __webpack_require__(4),
+  __webpack_require__(5),
   /* styles */
   null,
   /* scopeId */
@@ -105,7 +105,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_touch_vue__ = __webpack_require__(0);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_touch_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__src_touch_vue__);
 
-console.log(__WEBPACK_IMPORTED_MODULE_0__src_touch_vue___default.a);
 /* harmony default export */ __webpack_exports__["default"] = (__WEBPACK_IMPORTED_MODULE_0__src_touch_vue___default.a);
 
 /***/ }),
@@ -119,9 +118,54 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+var _touchHub = __webpack_require__(3);
 
-//
+var _touchHub2 = _interopRequireDefault(_touchHub);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * 事件
+ * touch-down(startPos, currentPos)
+ * touch-move(x, y)
+ * touch-slide(startPos, currentPost)
+ * touch-fling
+ * touch-up(startPos, currentPos)
+ */
+exports.default = {
+    name: 'ROTouch',
+    data: function data() {
+        return {
+            hub: new _touchHub2.default()
+        };
+    },
+    created: function created() {
+        var vm = this;
+        vm.hub.onTouchDown(function (res) {
+            return vm.$emit('touch-down', res);
+        });
+        vm.hub.onTouchUp(function (res) {
+            return vm.$emit('touch-up', res);
+        });
+        vm.hub.onTouchMove(function (res) {
+            return vm.$emit('touch-move', res);
+        });
+        vm.hub.onTouchSlide(function (res) {
+            return vm.$emit('touch-slide', res);
+        });
+        vm.hub.onTouchFling(function (res) {
+            return vm.$emit('touch-fling', res);
+        });
+        // this.hub.work(false);
+    },
+
+    mounted: function mounted() {
+        if (!('ontouchstart' in window)) {
+            // 判断是否支持touchHelper
+            throw new Error('touch event is not supported!');
+        }
+    }
+}; //
 //
 //
 //
@@ -134,6 +178,27 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 //
 //
 
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var assign = Object.assign;
+
+var noop = function noop() {};
+
+var AXIS_X = 1;
+var AXIS_Y = 2;
 
 // 对于changedTouches
 // 对于touchEnd来说会出现touches为end
@@ -150,85 +215,102 @@ function getTouches(event) {
  * touch-fling
  * touch-up(startPos, currentPos)
  */
-exports.default = {
-    name: 'ROTouch',
-    data: function data() {
-        return {
-            startX: null,
-            endX: null,
-            startY: null,
-            endY: null,
-            isScrolling: null,
 
-            speedRecord: [0, 0], // 速度记录
-            speedRecordIdx: 0,
+var TouchHub = function () {
 
-            minFlingSpeed: 1, // px/millsecond
-            maxFlingSpeed: 1,
+    /**
+     * onTouchDown
+     * onTouchUp
+     * onTouchMove
+     * onTouchSlide
+     * onTouchFling
+     */
+    function TouchHub() {
+        _classCallCheck(this, TouchHub);
 
-            // touch.move只返回offset
-            // touch.up touch.move touch.down返回startPos/currentPos，因为使用extend，生成的是新的对象
+        var self = this;
+        // 是否停止检测
+        self.active = true;
 
-            /* 主要依赖：CSSOM/gBCR */
+        self.speedX = [0, 0]; // 速度记录
+        self.speedXIdx = 0;
+        self.speedY = [0, 0];
+        self.speedYIdx = 0;
 
-            // 所有的状态
-            startPos: {
-                x: 0,
-                y: 0
-            }, // touch开始的位置，对应的pageX,pageY
-            currentPos: {
-                x: 0,
-                y: 0
-            }, // 每次touchMove的情况下，对应的pageX/pageY都是currentPos
-            lastRecordTime: -1 };
-    },
-    methods: {
-        // 所生成的start-pos和current-pos，来计算出当前的offset
-        onTouchStart: function onTouchStart(event) {
+        self.minFlingSpeed = 1; // px/millsecond
+        self.maxFlingSpeed = 1;
+
+        /* 主要依赖：CSSOM/gBCR */
+
+        // 所有的状态
+        self.startPos = {
+            x: 0,
+            y: 0
+        }; // touch开始的位置，对应的pageX,pageY
+        self.currentPos = {
+            x: 0,
+            y: 0
+        }; // 每次touchMove的情况下，对应的pageX/pageY都是currentPos
+        self.lastRecordTime = -1, // 上次数据记录时间
+        self._down = self._up = self._move = self._slide = self._fling = noop;
+    }
+
+    _createClass(TouchHub, [{
+        key: "start",
+        value: function start(event) {
+            var self = this;
+            if (!self.active) {
+                return;
+            }
+
             // 获得当前的位置数据
             var touch = event.changedTouches[0]; // todo: 这里为什么使用changedTouches
-            var self = this;
-            self.startPos.x = touch.clientX;
-            self.startPos.y = touch.clientY;
-            self.currentPos.x = touch.clientX;
-            self.currentPos.y = touch.clientY;
+            var x = touch.clientX;
+            var y = touch.clientY;
+            self._setStartPosition(x, y);
+            self._setCurrentPosition(x, y);
 
             // 发生点击的开始
             // 分别创建两个不同
-            self.$emit('touch-down', {
-                startPos: _extends({}, self.startPos),
-                currentPos: _extends({}, self.currentPos)
+            self._down({
+                startPos: assign({}, self.startPos),
+                currentPos: assign({}, self.currentPos)
             });
-            // event.preventDefault();
 
             self.lastRecordTime = Date.now();
-        },
+        }
+    }, {
+        key: "move",
+        value: function move(event) {
+            if (!this.active) {
+                return;
+            }
 
-        /*
-         * @description 调用了event.preventDefault()的内容
-         *
-         *  存在这样的问题，在手机浏览器上，需要在 touchmove事件中调用preventDefault，来保证touchstart/touchmove/touchend事件能够正常进行
-         */
-        onTouchMove: function onTouchMove(event) {
             var touch = getTouches(event);
             var self = this;
             var pageX = touch.clientX;
             var pageY = touch.clientY;
             var offsetX = pageX - self.currentPos.x;
             var offsetY = pageY - self.currentPos.y;
-            self.currentPos.x = pageX;
-            self.currentPos.y = pageY;
+            self._setCurrentPosition(pageX, pageY);
 
-            self.$emit('touch-move', {
+            self._move({
                 x: offsetX,
                 y: offsetY
             });
 
-            self.recordSpeed(offsetX);
+            self.recordSpeed(offsetX, AXIS_X);
+            self.recordSpeed(offsetY, AXIS_Y);
             // preventDefault
-            // event.preventDefault();
-        },
-        onTouchEnd: function onTouchEnd(event) {
+            event.preventDefault();
+        }
+    }, {
+        key: "end",
+        value: function end(event) {
+            if (!this.active) {
+                return;
+            }
+
             var touch = event.changedTouches[0];
             var self = this;
 
@@ -236,54 +318,101 @@ exports.default = {
             // const pageY = touch.clientY;
             // const offsetX = pageX - self.currentPos.x;
             // const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
-            self.currentPos.x = touch.clientX;
-            self.currentPos.y = touch.clientY;
+            self._setCurrentPosition(touch.clientX, touch.clientY);
 
-            var speed = (self.speedRecord[0] + self.speedRecord[1]) / 2;
-            self.$emit('touch-up', {
-                startPos: _extends({}, self.startPos),
-                currentPos: _extends({}, self.currentPos)
+            var speedX = (self.speedX[0] + self.speedX[1]) / 2;
+            self._up({
+                startPos: assign({}, self.startPos),
+                currentPos: assign({}, self.currentPos)
             });
-            if (Math.abs(speed) > self.minFlingSpeed) {
-                self.$emit('touch-fling', {
-                    startPos: _extends({}, self.startPos),
-                    currentPos: _extends({}, self.currentPos),
-                    speed: speed
+            if (Math.abs(speedX) > self.minFlingSpeed) {
+                self._fling({
+                    startPos: assign({}, self.startPos),
+                    currentPos: assign({}, self.currentPos),
+                    speedX: speedX
                 });
-                self.speedRecord[0] = self.speedRecord[1] = 0;
+                self.speedX[0] = self.speedX[1] = 0;
             } else if (Math.abs(self.currentPos.x - self.startPos.x) > 0) {
-                self.$emit('touch-slide', {
-                    startPos: _extends({}, self.startPos),
-                    currentPos: _extends({}, self.currentPos)
+                self._slide({
+                    startPos: assign({}, self.startPos),
+                    currentPos: assign({}, self.currentPos)
                 });
             }
 
             // clearSpeed
-            self.speedRecord[0] = self.speedRecord[1] = 0;
-        },
-        /*
-         * @description 记录速度，暂时没有用，因为fling没有使用
-         */
-        recordSpeed: function recordSpeed(offset) {
+            self.speedX[0] = self.speedX[1] = 0;
+        }
+    }, {
+        key: "recordSpeed",
+        value: function recordSpeed(offset, axis) {
             var self = this;
             var now = Date.now();
             var duration = now - self.lastRecordTime;
             var speed = offset / duration;
             // 记录数据
-            self.speedRecord[self.speedRecordIdx++ & 1] = speed; // 让speedRecordIdx保存为0或者1的情况
+            if (axis === AXIS_X) {
+                self.speedX[self.speedXIdx++ & 1] = speed; // 让speedIdx保存为0或者1的情况
+            } else if (axis === AXIS_Y) {
+                self.speedY[self.speedYIdx++ & 1] = speed; // 让speedIdx保存为0或者1的情况
+            }
             self.lastRecordTime = now;
         }
-    },
-    mounted: function mounted() {
-        if (!('ontouchstart' in window)) {
-            // 判断是否支持touchHelper
-            throw new Error('touch event is not supported!');
+    }, {
+        key: "work",
+        value: function work(active) {
+            this.active = active;
         }
-    }
-};
+    }, {
+        key: "_setStartPosition",
+        value: function _setStartPosition(x, y) {
+            this.startPos.x = x;
+            this.startPos.y = y;
+        }
+
+        /**
+         * 
+         */
+
+    }, {
+        key: "_setCurrentPosition",
+        value: function _setCurrentPosition(x, y) {
+            this.currentPos.x = x;
+            this.currentPos.y = y;
+        }
+    }, {
+        key: "onTouchDown",
+        value: function onTouchDown(cb) {
+            this._down = cb;
+        }
+    }, {
+        key: "onTouchUp",
+        value: function onTouchUp(cb) {
+            this._up = cb;
+        }
+    }, {
+        key: "onTouchMove",
+        value: function onTouchMove(cb) {
+            this._move = cb;
+        }
+    }, {
+        key: "onTouchSlide",
+        value: function onTouchSlide(cb) {
+            this._slide = cb;
+        }
+    }, {
+        key: "onTouchFling",
+        value: function onTouchFling(cb) {
+            this._fling = cb;
+        }
+    }]);
+
+    return TouchHub;
+}();
+
+exports.default = TouchHub;
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports) {
 
 /* globals __VUE_SSR_CONTEXT__ */
@@ -380,7 +509,7 @@ module.exports = function normalizeComponent (
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports) {
 
 module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
@@ -391,12 +520,15 @@ module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c
       "height": "100%"
     },
     on: {
-      "touchstart": _vm.onTouchStart,
-      "touchmove": function($event) {
-        $event.preventDefault();
-        _vm.onTouchMove($event)
+      "touchstart": function($event) {
+        _vm.hub.start($event)
       },
-      "touchend": _vm.onTouchEnd
+      "touchmove": function($event) {
+        _vm.hub.move($event)
+      },
+      "touchend": function($event) {
+        _vm.hub.end($event)
+      }
     }
   }, [_vm._t("default")], 2)
 },staticRenderFns: []}
