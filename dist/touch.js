@@ -73,42 +73,11 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var Component = __webpack_require__(4)(
-  /* script */
-  __webpack_require__(2),
-  /* template */
-  __webpack_require__(5),
-  /* styles */
-  null,
-  /* scopeId */
-  null,
-  /* moduleIdentifier (server only) */
-  null
-)
-
-module.exports = Component.exports
-
-
-/***/ }),
-/* 1 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_touch_vue__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_touch_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__src_touch_vue__);
-
-/* harmony default export */ __webpack_exports__["default"] = (__WEBPACK_IMPORTED_MODULE_0__src_touch_vue___default.a);
-
-/***/ }),
-/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -118,11 +87,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _touchHub = __webpack_require__(3);
-
-var _touchHub2 = _interopRequireDefault(_touchHub);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _touchHub = __webpack_require__(1);
 
 /**
  * 事件
@@ -136,7 +101,7 @@ exports.default = {
     name: 'ROTouch',
     data: function data() {
         return {
-            hub: new _touchHub2.default()
+            hub: new _touchHub.TouchHub()
         };
     },
     created: function created() {
@@ -156,30 +121,32 @@ exports.default = {
         vm.hub.onTouchFling(function (res) {
             return vm.$emit('touch-fling', res);
         });
-        // this.hub.work(false);
     },
-
-    mounted: function mounted() {
-        if (!('ontouchstart' in window)) {
-            // 判断是否支持touchHelper
-            throw new Error('touch event is not supported!');
+    render: function render(h) {
+        var vm = this;
+        var v = {
+            'class': ['ro-touch'],
+            style: {
+                width: '100%',
+                height: '100%'
+            },
+            on: {}
+        };
+        if (_touchHub.supportTouchEvent) {
+            v.on.touchstart = vm.hub.start.bind(vm.hub);
+            v.on.touchmove = vm.hub.move.bind(vm.hub);
+            v.on.touchend = vm.hub.end.bind(vm.hub);
+        } else {
+            v.on.mousedown = vm.hub.start.bind(vm.hub);
+            v.on.mousemove = vm.hub.move.bind(vm.hub);
+            v.on.mouseup = vm.hub.end.bind(vm.hub);
         }
+        return h('div', v, this.$slots.default);
     }
-}; //
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
+};
 
 /***/ }),
-/* 3 */
+/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -200,12 +167,7 @@ var noop = function noop() {};
 var AXIS_X = 1;
 var AXIS_Y = 2;
 
-// 对于changedTouches
-// 对于touchEnd来说会出现touches为end
-// 对于touchStart来说，changedTouches失败了
-function getTouches(event) {
-    return event.touches[0];
-}
+var supportTouchEvent = exports.supportTouchEvent = 'ontouchstart' in window;
 
 /**
  * 事件
@@ -216,7 +178,7 @@ function getTouches(event) {
  * touch-up(startPos, currentPos)
  */
 
-var TouchHub = function () {
+var TouchHub = exports.TouchHub = function () {
 
     /**
      * onTouchDown
@@ -225,6 +187,9 @@ var TouchHub = function () {
      * onTouchSlide
      * onTouchFling
      */
+    // 缓存记录
+    // 关于y轴速度记录
+    // 关于x轴速度记录
     function TouchHub() {
         _classCallCheck(this, TouchHub);
 
@@ -253,20 +218,41 @@ var TouchHub = function () {
         }; // 每次touchMove的情况下，对应的pageX/pageY都是currentPos
         self.lastRecordTime = -1, // 上次数据记录时间
         self._down = self._up = self._move = self._slide = self._fling = noop;
+
+        if (supportTouchEvent) {
+            console.log('[touch] support touch event');
+        } else {
+            console.log('[touch] fallback to mouse event');
+        }
     }
 
+    // 所有的触发函数
+    // 缓存记录
+
+    // 关于y轴速度记录的index
+
+    // 关于x轴速度记录的index
+
+
     _createClass(TouchHub, [{
-        key: "start",
+        key: 'start',
         value: function start(event) {
             var self = this;
             if (!self.active) {
                 return;
             }
 
+            var e = null;
+            if (supportTouchEvent) {
+                e = event.changedTouches[0];
+            } else {
+                e = event;
+                self.mouseStatus = 1;
+            }
+
             // 获得当前的位置数据
-            var touch = event.changedTouches[0]; // todo: 这里为什么使用changedTouches
-            var x = touch.clientX;
-            var y = touch.clientY;
+            var x = e.clientX;
+            var y = e.clientY;
             self._setStartPosition(x, y);
             self._setCurrentPosition(x, y);
 
@@ -280,16 +266,25 @@ var TouchHub = function () {
             self.lastRecordTime = Date.now();
         }
     }, {
-        key: "move",
+        key: 'move',
         value: function move(event) {
-            if (!this.active) {
+            var self = this;
+            if (!self.active) {
                 return;
             }
 
-            var touch = getTouches(event);
-            var self = this;
-            var pageX = touch.clientX;
-            var pageY = touch.clientY;
+            var e = null;
+            if (supportTouchEvent) {
+                e = event.touches[0];
+            } else {
+                e = event;
+                if (self.mouseStatus != 1) {
+                    return;
+                }
+            }
+
+            var pageX = e.clientX;
+            var pageY = e.clientY;
             var offsetX = pageX - self.currentPos.x;
             var offsetY = pageY - self.currentPos.y;
             self._setCurrentPosition(pageX, pageY);
@@ -305,20 +300,26 @@ var TouchHub = function () {
             event.preventDefault();
         }
     }, {
-        key: "end",
+        key: 'end',
         value: function end(event) {
-            if (!this.active) {
+            var self = this;
+            if (!self.active) {
                 return;
             }
 
-            var touch = event.changedTouches[0];
-            var self = this;
+            var e = null;
+            if (supportTouchEvent) {
+                e = event.changedTouches[0];
+            } else {
+                e = event;
+                self.mouseStatus = 0;
+            }
 
             // const pageX = touch.clientX;
             // const pageY = touch.clientY;
             // const offsetX = pageX - self.currentPos.x;
             // const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
-            self._setCurrentPosition(touch.clientX, touch.clientY);
+            self._setCurrentPosition(e.clientX, e.clientY);
 
             var speedX = (self.speedX[0] + self.speedX[1]) / 2;
             self._up({
@@ -343,7 +344,7 @@ var TouchHub = function () {
             self.speedX[0] = self.speedX[1] = 0;
         }
     }, {
-        key: "recordSpeed",
+        key: 'recordSpeed',
         value: function recordSpeed(offset, axis) {
             var self = this;
             var now = Date.now();
@@ -358,12 +359,12 @@ var TouchHub = function () {
             self.lastRecordTime = now;
         }
     }, {
-        key: "work",
+        key: 'work',
         value: function work(active) {
             this.active = active;
         }
     }, {
-        key: "_setStartPosition",
+        key: '_setStartPosition',
         value: function _setStartPosition(x, y) {
             this.startPos.x = x;
             this.startPos.y = y;
@@ -374,33 +375,33 @@ var TouchHub = function () {
          */
 
     }, {
-        key: "_setCurrentPosition",
+        key: '_setCurrentPosition',
         value: function _setCurrentPosition(x, y) {
             this.currentPos.x = x;
             this.currentPos.y = y;
         }
     }, {
-        key: "onTouchDown",
+        key: 'onTouchDown',
         value: function onTouchDown(cb) {
             this._down = cb;
         }
     }, {
-        key: "onTouchUp",
+        key: 'onTouchUp',
         value: function onTouchUp(cb) {
             this._up = cb;
         }
     }, {
-        key: "onTouchMove",
+        key: 'onTouchMove',
         value: function onTouchMove(cb) {
             this._move = cb;
         }
     }, {
-        key: "onTouchSlide",
+        key: 'onTouchSlide',
         value: function onTouchSlide(cb) {
             this._slide = cb;
         }
     }, {
-        key: "onTouchFling",
+        key: 'onTouchFling',
         value: function onTouchFling(cb) {
             this._fling = cb;
         }
@@ -409,129 +410,16 @@ var TouchHub = function () {
     return TouchHub;
 }();
 
-exports.default = TouchHub;
-
 /***/ }),
-/* 4 */
-/***/ (function(module, exports) {
+/* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
-/* globals __VUE_SSR_CONTEXT__ */
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_touch_js__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_touch_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__src_touch_js__);
 
-// this module is a runtime utility for cleaner component module output and will
-// be included in the final webpack user bundle
-
-module.exports = function normalizeComponent (
-  rawScriptExports,
-  compiledTemplate,
-  injectStyles,
-  scopeId,
-  moduleIdentifier /* server only */
-) {
-  var esModule
-  var scriptExports = rawScriptExports = rawScriptExports || {}
-
-  // ES6 modules interop
-  var type = typeof rawScriptExports.default
-  if (type === 'object' || type === 'function') {
-    esModule = rawScriptExports
-    scriptExports = rawScriptExports.default
-  }
-
-  // Vue.extend constructor export interop
-  var options = typeof scriptExports === 'function'
-    ? scriptExports.options
-    : scriptExports
-
-  // render functions
-  if (compiledTemplate) {
-    options.render = compiledTemplate.render
-    options.staticRenderFns = compiledTemplate.staticRenderFns
-  }
-
-  // scopedId
-  if (scopeId) {
-    options._scopeId = scopeId
-  }
-
-  var hook
-  if (moduleIdentifier) { // server build
-    hook = function (context) {
-      // 2.3 injection
-      context =
-        context || // cached call
-        (this.$vnode && this.$vnode.ssrContext) || // stateful
-        (this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext) // functional
-      // 2.2 with runInNewContext: true
-      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
-        context = __VUE_SSR_CONTEXT__
-      }
-      // inject component styles
-      if (injectStyles) {
-        injectStyles.call(this, context)
-      }
-      // register component module identifier for async chunk inferrence
-      if (context && context._registeredComponents) {
-        context._registeredComponents.add(moduleIdentifier)
-      }
-    }
-    // used by ssr in case component is cached and beforeCreate
-    // never gets called
-    options._ssrRegister = hook
-  } else if (injectStyles) {
-    hook = injectStyles
-  }
-
-  if (hook) {
-    var functional = options.functional
-    var existing = functional
-      ? options.render
-      : options.beforeCreate
-    if (!functional) {
-      // inject component registration as beforeCreate hook
-      options.beforeCreate = existing
-        ? [].concat(existing, hook)
-        : [hook]
-    } else {
-      // register for functioal component in vue file
-      options.render = function renderWithStyleInjection (h, context) {
-        hook.call(context)
-        return existing(h, context)
-      }
-    }
-  }
-
-  return {
-    esModule: esModule,
-    exports: scriptExports,
-    options: options
-  }
-}
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports) {
-
-module.exports={render:function (){var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;
-  return _c('div', {
-    staticClass: "ro-touch",
-    staticStyle: {
-      "width": "100%",
-      "height": "100%"
-    },
-    on: {
-      "touchstart": function($event) {
-        _vm.hub.start($event)
-      },
-      "touchmove": function($event) {
-        _vm.hub.move($event)
-      },
-      "touchend": function($event) {
-        _vm.hub.end($event)
-      }
-    }
-  }, [_vm._t("default")], 2)
-},staticRenderFns: []}
+/* harmony default export */ __webpack_exports__["default"] = (__WEBPACK_IMPORTED_MODULE_0__src_touch_js___default.a);
 
 /***/ })
 /******/ ]);

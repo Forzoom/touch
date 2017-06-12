@@ -63,8 +63,7 @@ Touch是vue组件
 
 ### Roadmap
 
-1. prevent由touch-hub控制
-1. 支持两个坐标轴
+1. 尝试Karma
 
 ### Changelog
 
@@ -74,6 +73,16 @@ Touch是vue组件
 2. speed支持对于x,y两个轴
 3. 添加flow对于touch-hub进行简单的类型检查
 
+#### v0.0.7
+
+1. 使用mousedown/mousemove/mouseup三个事件实现当不支持touch事件时候的fallback
+
 ##### BreakChange
 
+#### v0.0.6
+
 1. onTouchFling参数由(startPos, currentPos, speed)改为(startPos, currentPos, speedX, speedY)
+
+#### v0.0.7
+
+1. touch-hub 由 export default class TouchHub 改为 export const supportTouchEvent 和 export class TouchHub

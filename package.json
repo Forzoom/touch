@@ -1,6 +1,6 @@
 {
   "name": "@forzoom/touch",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "touch component",
   "main": "dist/touch.min.js",
   "scripts": {

@@ -14,12 +14,7 @@ const noop = () => {};
 const AXIS_X = 1;
 const AXIS_Y = 2;
 
-// 对于changedTouches
-// 对于touchEnd来说会出现touches为end
-// 对于touchStart来说，changedTouches失败了
-function getTouches (event) {
-    return event.touches[0];
-}
+export const supportTouchEvent = 'ontouchstart' in window;
 
 /**
  * 事件
@@ -29,22 +24,25 @@ function getTouches (event) {
  * touch-fling
  * touch-up(startPos, currentPos)
  */
-export default class TouchHub {
+export class TouchHub {
 
     active: boolean;
-    speedX: Array<number>;
-    speedXIdx: number;
-    speedY: Array<number>;
-    speedYIdx: number;
+    speedX: Array<number>; // 关于x轴速度记录
+    speedXIdx: number; // 关于x轴速度记录的index
+    speedY: Array<number>; // 关于y轴速度记录
+    speedYIdx: number; // 关于y轴速度记录的index
 
     minFlingSpeed: number;
     maxFlingSpeed: number;
 
-    startPos: Position;
-    currentPos: Position;
+    startPos: Position; // 缓存记录
+    currentPos: Position; // 缓存记录
 
     lastRecordTime: number;
 
+    mouseStatus: number;
+
+    // 所有的触发函数
     _down: Function;
     _up: Function;
     _move: Function;
@@ -84,6 +82,12 @@ export default class TouchHub {
         }; // 每次touchMove的情况下，对应的pageX/pageY都是currentPos
         self.lastRecordTime = -1, // 上次数据记录时间
         self._down = self._up = self._move = self._slide = self._fling = noop;
+
+        if (supportTouchEvent) {
+            console.log('[touch] support touch event');
+        } else {
+            console.log('[touch] fallback to mouse event');
+        }
     }
 
     start(event: any): void {
@@ -92,10 +96,17 @@ export default class TouchHub {
             return;
         }
 
+        let e = null;
+        if (supportTouchEvent) {
+            e = event.changedTouches[0];
+        } else {
+            e = event;
+            self.mouseStatus = 1;
+        }
+
         // 获得当前的位置数据
-        const touch = event.changedTouches[0]; // todo: 这里为什么使用changedTouches
-        const x = touch.clientX;
-        const y = touch.clientY;
+        const x = e.clientX;
+        const y = e.clientY;
         self._setStartPosition(x, y);
         self._setCurrentPosition(x, y);
 
@@ -110,14 +121,24 @@ export default class TouchHub {
     }
 
     move(event: any): void {
-        if (!this.active) {
+        const self = this;
+        if (!self.active) {
             return;
         }
 
-        const touch = getTouches(event);
-        const self = this;
-        const pageX = touch.clientX;
-        const pageY = touch.clientY;
+        let e = null;
+        if (supportTouchEvent) {
+            e = event.touches[0];
+        } else {
+            e = event;
+            if (self.mouseStatus != 1) {
+                return;
+            }
+        }
+        
+        
+        const pageX = e.clientX;
+        const pageY = e.clientY;
         const offsetX = pageX - self.currentPos.x;
         const offsetY = pageY - self.currentPos.y;
         self._setCurrentPosition(pageX, pageY);
@@ -134,18 +155,24 @@ export default class TouchHub {
     }
 
     end(event: any): void {
-        if (!this.active) {
+        const self = this;
+        if (!self.active) {
             return;
         }
 
-        const touch = event.changedTouches[0];
-        const self = this;
+        let e = null;
+        if (supportTouchEvent) {
+            e = event.changedTouches[0];
+        } else {
+            e = event;
+            self.mouseStatus = 0;
+        }
 
         // const pageX = touch.clientX;
         // const pageY = touch.clientY;
         // const offsetX = pageX - self.currentPos.x;
         // const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
-        self._setCurrentPosition(touch.clientX, touch.clientY);
+        self._setCurrentPosition(e.clientX, e.clientY);
 
         const speedX = (self.speedX[0] + self.speedX[1]) / 2;
         self._up({
