@@ -1,2 +1,2 @@
-import Touch from './src/touch.vue';
+import Touch from './src/touch.js';
 export default Touch;
