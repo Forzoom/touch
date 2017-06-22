@@ -12,6 +12,12 @@ import {
  */
 export default {
     name: 'ROTouch',
+    props: {
+        coordinate: {
+            type: String,
+            default: 'x',
+        },
+    },
     data: function () {
         return {
             hub: new TouchHub(),
@@ -24,6 +30,9 @@ export default {
         vm.hub.onTouchMove((res) => vm.$emit('touch-move', res));
         vm.hub.onTouchSlide((res) => vm.$emit('touch-slide', res));
         vm.hub.onTouchFling((res) => vm.$emit('touch-fling', res));
+    },
+    mounted() {
+        this.hub.coordinate = this.coordinate;
     },
     render(h) {
         const vm = this;

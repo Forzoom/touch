@@ -99,6 +99,12 @@ var _touchHub = __webpack_require__(1);
  */
 exports.default = {
     name: 'ROTouch',
+    props: {
+        coordinate: {
+            type: String,
+            default: 'x'
+        }
+    },
     data: function data() {
         return {
             hub: new _touchHub.TouchHub()
@@ -121,6 +127,9 @@ exports.default = {
         vm.hub.onTouchFling(function (res) {
             return vm.$emit('touch-fling', res);
         });
+    },
+    mounted: function mounted() {
+        this.hub.coordinate = this.coordinate;
     },
     render: function render(h) {
         var vm = this;
@@ -187,9 +196,14 @@ var TouchHub = exports.TouchHub = function () {
      * onTouchSlide
      * onTouchFling
      */
+
+
+    // mouse事件所使用的变量
     // 缓存记录
-    // 关于y轴速度记录
-    // 关于x轴速度记录
+
+    // 关于y轴速度记录的index
+
+    // 关于x轴速度记录的index
     function TouchHub() {
         _classCallCheck(this, TouchHub);
 
@@ -205,6 +219,9 @@ var TouchHub = exports.TouchHub = function () {
         self.minFlingSpeed = 1; // px/millsecond
         self.maxFlingSpeed = 1;
 
+        // 当前主要检测的轴向
+        self.coordinate = 'x';
+
         /* 主要依赖：CSSOM/gBCR */
 
         // 所有的状态
@@ -219,6 +236,7 @@ var TouchHub = exports.TouchHub = function () {
         self.lastRecordTime = -1, // 上次数据记录时间
         self._down = self._up = self._move = self._slide = self._fling = noop;
 
+        // 输出
         if (supportTouchEvent) {
             console.log('[touch] support touch event');
         } else {
@@ -227,11 +245,12 @@ var TouchHub = exports.TouchHub = function () {
     }
 
     // 所有的触发函数
+
+
+    // 主要检测哪个轴向上的内容
     // 缓存记录
-
-    // 关于y轴速度记录的index
-
-    // 关于x轴速度记录的index
+    // 关于y轴速度记录
+    // 关于x轴速度记录
 
 
     _createClass(TouchHub, [{
@@ -294,8 +313,10 @@ var TouchHub = exports.TouchHub = function () {
                 y: offsetY
             });
 
-            self.recordSpeed(offsetX, AXIS_X);
-            self.recordSpeed(offsetY, AXIS_Y);
+            var now = Date.now();
+            self.recordSpeed(offsetX, AXIS_X, now);
+            self.recordSpeed(offsetY, AXIS_Y, now);
+            self.lastRecordTime = now;
             // preventDefault
             event.preventDefault();
         }
@@ -322,18 +343,19 @@ var TouchHub = exports.TouchHub = function () {
             self._setCurrentPosition(e.clientX, e.clientY);
 
             var speedX = (self.speedX[0] + self.speedX[1]) / 2;
+            var speedY = (self.speedY[0] + self.speedY[1]) / 2;
             self._up({
                 startPos: assign({}, self.startPos),
                 currentPos: assign({}, self.currentPos)
             });
-            if (Math.abs(speedX) > self.minFlingSpeed) {
+            if (self.coordinate === 'x' ? Math.abs(speedX) > self.minFlingSpeed : Math.abs(speedY) > self.minFlingSpeed) {
                 self._fling({
                     startPos: assign({}, self.startPos),
                     currentPos: assign({}, self.currentPos),
-                    speedX: speedX
+                    speedX: speedX,
+                    speedY: speedY
                 });
-                self.speedX[0] = self.speedX[1] = 0;
-            } else if (Math.abs(self.currentPos.x - self.startPos.x) > 0) {
+            } else if (self.coordinate === 'x' ? Math.abs(self.currentPos.x - self.startPos.x) > 0 : Math.abs(self.currentPos.y - self.startPos.y) > 0) {
                 self._slide({
                     startPos: assign({}, self.startPos),
                     currentPos: assign({}, self.currentPos)
@@ -342,12 +364,12 @@ var TouchHub = exports.TouchHub = function () {
 
             // clearSpeed
             self.speedX[0] = self.speedX[1] = 0;
+            self.speedY[0] = self.speedY[1] = 0;
         }
     }, {
         key: 'recordSpeed',
-        value: function recordSpeed(offset, axis) {
+        value: function recordSpeed(offset, axis, now) {
             var self = this;
-            var now = Date.now();
             var duration = now - self.lastRecordTime;
             var speed = offset / duration;
             // 记录数据
@@ -356,7 +378,6 @@ var TouchHub = exports.TouchHub = function () {
             } else if (axis === AXIS_Y) {
                 self.speedY[self.speedYIdx++ & 1] = speed; // 让speedIdx保存为0或者1的情况
             }
-            self.lastRecordTime = now;
         }
     }, {
         key: 'work',

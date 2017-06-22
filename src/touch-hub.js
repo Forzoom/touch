@@ -40,6 +40,10 @@ export class TouchHub {
 
     lastRecordTime: number;
 
+    // 主要检测哪个轴向上的内容
+    coordinate: string;
+
+    // mouse事件所使用的变量
     mouseStatus: number;
 
     // 所有的触发函数
@@ -69,6 +73,9 @@ export class TouchHub {
         self.minFlingSpeed = 1; // px/millsecond
         self.maxFlingSpeed = 1;
 
+        // 当前主要检测的轴向
+        self.coordinate = 'x';
+
         /* 主要依赖：CSSOM/gBCR */
 
         // 所有的状态
@@ -83,6 +90,7 @@ export class TouchHub {
         self.lastRecordTime = -1, // 上次数据记录时间
         self._down = self._up = self._move = self._slide = self._fling = noop;
 
+        // 输出
         if (supportTouchEvent) {
             console.log('[touch] support touch event');
         } else {
@@ -148,8 +156,10 @@ export class TouchHub {
             y: offsetY,
         });
 
-        self.recordSpeed(offsetX, AXIS_X);
-        self.recordSpeed(offsetY, AXIS_Y);
+        const now = Date.now();
+        self.recordSpeed(offsetX, AXIS_X, now);
+        self.recordSpeed(offsetY, AXIS_Y, now);
+        self.lastRecordTime = now;
         // preventDefault
         event.preventDefault();
     }
@@ -175,18 +185,19 @@ export class TouchHub {
         self._setCurrentPosition(e.clientX, e.clientY);
 
         const speedX = (self.speedX[0] + self.speedX[1]) / 2;
+        const speedY = (self.speedY[0] + self.speedY[1]) / 2;
         self._up({
             startPos: assign({}, self.startPos),
             currentPos: assign({}, self.currentPos),
         });
-        if (Math.abs(speedX) > self.minFlingSpeed) {
+        if (self.coordinate === 'x' ? Math.abs(speedX) > self.minFlingSpeed : Math.abs(speedY) > self.minFlingSpeed) {
             self._fling({
                 startPos: assign({}, self.startPos),
                 currentPos: assign({}, self.currentPos),
                 speedX,
+                speedY,
             });
-            self.speedX[0] = self.speedX[1] = 0;
-        } else if (Math.abs(self.currentPos.x - self.startPos.x) > 0) {
+        } else if (self.coordinate === 'x' ? Math.abs(self.currentPos.x - self.startPos.x) > 0 : Math.abs(self.currentPos.y - self.startPos.y) > 0) {
             self._slide({
                 startPos: assign({}, self.startPos),
                 currentPos: assign({}, self.currentPos),
@@ -195,11 +206,11 @@ export class TouchHub {
 
         // clearSpeed
         self.speedX[0] = self.speedX[1] = 0;
+        self.speedY[0] = self.speedY[1] = 0;
     }
 
-    recordSpeed(offset: number, axis: AXIS): void {
+    recordSpeed(offset: number, axis: AXIS, now: number): void {
         const self = this;
-        const now = Date.now();
         const duration = now - self.lastRecordTime;
         const speed = offset / duration;
         // 记录数据
@@ -208,7 +219,6 @@ export class TouchHub {
         } else if (axis === AXIS_Y) {
             self.speedY[(self.speedYIdx++) & 1] = speed; // 让speedIdx保存为0或者1的情况
         }
-        self.lastRecordTime = now;
     }
 
     work(active: boolean): void {
