@@ -165,11 +165,11 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var assign = Object.assign;
 
 var noop = function noop() {};
 
@@ -278,8 +278,8 @@ var TouchHub = exports.TouchHub = function () {
             // 发生点击的开始
             // 分别创建两个不同
             self._down({
-                startPos: assign({}, self.startPos),
-                currentPos: assign({}, self.currentPos)
+                startPos: _extends({}, self.startPos),
+                currentPos: _extends({}, self.currentPos)
             });
 
             self.lastRecordTime = Date.now();
@@ -335,7 +335,6 @@ var TouchHub = exports.TouchHub = function () {
                 e = event;
                 self.mouseStatus = 0;
             }
-
             // const pageX = touch.clientX;
             // const pageY = touch.clientY;
             // const offsetX = pageX - self.currentPos.x;
@@ -345,20 +344,20 @@ var TouchHub = exports.TouchHub = function () {
             var speedX = (self.speedX[0] + self.speedX[1]) / 2;
             var speedY = (self.speedY[0] + self.speedY[1]) / 2;
             self._up({
-                startPos: assign({}, self.startPos),
-                currentPos: assign({}, self.currentPos)
+                startPos: _extends({}, self.startPos),
+                currentPos: _extends({}, self.currentPos)
             });
             if (self.coordinate === 'x' ? Math.abs(speedX) > self.minFlingSpeed : Math.abs(speedY) > self.minFlingSpeed) {
                 self._fling({
-                    startPos: assign({}, self.startPos),
-                    currentPos: assign({}, self.currentPos),
+                    startPos: _extends({}, self.startPos),
+                    currentPos: _extends({}, self.currentPos),
                     speedX: speedX,
                     speedY: speedY
                 });
             } else if (self.coordinate === 'x' ? Math.abs(self.currentPos.x - self.startPos.x) > 0 : Math.abs(self.currentPos.y - self.startPos.y) > 0) {
                 self._slide({
-                    startPos: assign({}, self.startPos),
-                    currentPos: assign({}, self.currentPos)
+                    startPos: _extends({}, self.startPos),
+                    currentPos: _extends({}, self.currentPos)
                 });
             }
 

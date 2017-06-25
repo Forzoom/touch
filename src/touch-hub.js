@@ -7,8 +7,6 @@ type Position = {
 
 type AXIS = number;
 
-const assign = Object.assign;
-
 const noop = () => {};
 
 const AXIS_X = 1;
@@ -121,8 +119,8 @@ export class TouchHub {
         // 发生点击的开始
         // 分别创建两个不同
         self._down({
-            startPos: assign({}, self.startPos),
-            currentPos: assign({}, self.currentPos),
+            startPos: Object.assign({}, self.startPos),
+            currentPos: Object.assign({}, self.currentPos),
         });
 
         self.lastRecordTime = Date.now();
@@ -177,7 +175,6 @@ export class TouchHub {
             e = event;
             self.mouseStatus = 0;
         }
-
         // const pageX = touch.clientX;
         // const pageY = touch.clientY;
         // const offsetX = pageX - self.currentPos.x;
@@ -187,20 +184,20 @@ export class TouchHub {
         const speedX = (self.speedX[0] + self.speedX[1]) / 2;
         const speedY = (self.speedY[0] + self.speedY[1]) / 2;
         self._up({
-            startPos: assign({}, self.startPos),
-            currentPos: assign({}, self.currentPos),
+            startPos: Object.assign({}, self.startPos),
+            currentPos: Object.assign({}, self.currentPos),
         });
         if (self.coordinate === 'x' ? Math.abs(speedX) > self.minFlingSpeed : Math.abs(speedY) > self.minFlingSpeed) {
             self._fling({
-                startPos: assign({}, self.startPos),
-                currentPos: assign({}, self.currentPos),
+                startPos: Object.assign({}, self.startPos),
+                currentPos: Object.assign({}, self.currentPos),
                 speedX,
                 speedY,
             });
         } else if (self.coordinate === 'x' ? Math.abs(self.currentPos.x - self.startPos.x) > 0 : Math.abs(self.currentPos.y - self.startPos.y) > 0) {
             self._slide({
-                startPos: assign({}, self.startPos),
-                currentPos: assign({}, self.currentPos),
+                startPos: Object.assign({}, self.startPos),
+                currentPos: Object.assign({}, self.currentPos),
             });
         }
 
