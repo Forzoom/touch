@@ -1,5 +1,10 @@
 [TOC]
 
+### 示例
+
+import Touch from '@forzoom/touch';
+Vue.component('Touch', Touch);
+
 ### 功能模块
 
 #### TouchHub
@@ -96,3 +101,11 @@ Touch是vue组件
 #### 0.0.7
 
 1. touch-hub 由 export default class TouchHub 改为 export const supportTouchEvent 和 export class TouchHub
+
+#### 0.0.8
+
+1. 添加y轴支持
+
+#### 0.0.9
+
+1. 修复Object.assign的错误
