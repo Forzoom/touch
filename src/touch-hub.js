@@ -73,6 +73,7 @@ export class TouchHub {
 
         // 当前主要检测的轴向
         self.coordinate = 'x';
+        self.moveCoordinate = null;
 
         /* 主要依赖：CSSOM/gBCR */
 
@@ -141,8 +142,7 @@ export class TouchHub {
                 return;
             }
         }
-        
-        
+
         const pageX = e.clientX;
         const pageY = e.clientY;
         const offsetX = pageX - self.currentPos.x;
@@ -158,8 +158,15 @@ export class TouchHub {
         self.recordSpeed(offsetX, AXIS_X, now);
         self.recordSpeed(offsetY, AXIS_Y, now);
         self.lastRecordTime = now;
+
+        if (!self.moveCoordinate) {
+            self.moveCoordinate = Math.abs(offsetX) > Math.abs(offsetY) ? 'x' : 'y';
+        }
+
         // preventDefault
-        event.preventDefault();
+        if (self.moveCoordinate == self.coordinate) {
+            event.preventDefault();
+        }
     }
 
     end(event: any): void {
@@ -204,6 +211,9 @@ export class TouchHub {
         // clearSpeed
         self.speedX[0] = self.speedX[1] = 0;
         self.speedY[0] = self.speedY[1] = 0;
+
+        //
+        self.moveCoordinate = null;
     }
 
     recordSpeed(offset: number, axis: AXIS, now: number): void {

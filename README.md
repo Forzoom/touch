@@ -1,5 +1,10 @@
 [TOC]
 
+### 示例
+
+import Touch from '@forzoom/touch';
+Vue.component('Touch', Touch);
+
 ### 功能模块
 
 #### TouchHub
@@ -87,6 +92,14 @@ Touch是vue组件
 
 1. 添加对于y轴的支持，允许在touch组件中使用prop: coordinate进行切换，主要处理slide和fling相关的逻辑
 
+#### 0.0.9
+
+1. 修复Object.assign的错误
+
+#### 0.0.10
+
+1. 完善preventDefault的控制逻辑
+
 ### BreakChange
 
 #### 0.0.6
@@ -96,3 +109,7 @@ Touch是vue组件
 #### 0.0.7
 
 1. touch-hub 由 export default class TouchHub 改为 export const supportTouchEvent 和 export class TouchHub
+
+#### 0.0.8
+
+1. 添加y轴支持
