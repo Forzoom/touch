@@ -40,6 +40,7 @@ export class TouchHub {
 
     // 主要检测哪个轴向上的内容
     coordinate: string;
+    moveCoordinate: string;
 
     // mouse事件所使用的变量
     mouseStatus: number;
@@ -149,19 +150,22 @@ export class TouchHub {
         const offsetY = pageY - self.currentPos.y;
         self._setCurrentPosition(pageX, pageY);
 
+        const moveCoordinate = Math.abs(offsetX) > Math.abs(offsetY) ? 'x' : 'y'
+        if (!self.moveCoordinate) {
+            self.moveCoordinate = moveCoordinate;
+        }
+
         self._move({
             x: offsetX,
             y: offsetY,
+            startMoveCoordinate: self.moveCoordinate,
+            moveCoordinate,
         });
 
         const now = Date.now();
         self.recordSpeed(offsetX, AXIS_X, now);
         self.recordSpeed(offsetY, AXIS_Y, now);
         self.lastRecordTime = now;
-
-        if (!self.moveCoordinate) {
-            self.moveCoordinate = Math.abs(offsetX) > Math.abs(offsetY) ? 'x' : 'y';
-        }
 
         // preventDefault
         if (self.moveCoordinate == self.coordinate) {

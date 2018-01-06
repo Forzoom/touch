@@ -100,6 +100,10 @@ Touch是vue组件
 
 1. 完善preventDefault的控制逻辑
 
+#### 0.0.11
+
+1. move事件中添加startMoveCoordinate和moveCoordinate数据
+
 ### BreakChange
 
 #### 0.0.6
