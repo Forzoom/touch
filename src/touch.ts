@@ -1,7 +1,9 @@
+import Vue from 'vue';
 import {
     supportTouchEvent,
     TouchHub,
-} from './touch-hub.js';
+} from './touch-hub';
+
 /**
  * 事件
  * touch-down(startPos, currentPos)
@@ -10,18 +12,47 @@ import {
  * touch-fling
  * touch-up(startPos, currentPos)
  */
-export default {
-    name: 'ROTouch',
+export const TouchDetector = {
+    name: 'TouchDetector',
     props: {
+        /**
+         * 当前正在处理的coordinate
+         */
         coordinate: {
             type: String,
             default: 'x',
         },
+        /**
+         * 是否active
+         */
+        active: {
+            type: Boolean,
+            default: true,
+        },
     },
-    data: function () {
+    data() {
         return {
             hub: new TouchHub(),
         };
+    },
+    watch: {
+        /**
+         * 检查active
+         */
+        active(val) {
+            this.hub.active = val;
+        },
+    },
+    methods: {
+        touchstart(e) {
+            this.hub.start.call(this.hub, e);
+        },
+        touchmove(e) {
+            this.hub.move.call(this.hub, e);
+        },
+        touchend(e) {
+            this.hub.end.call(this.hub, e);
+        },
     },
     created() {
         const vm = this;
@@ -33,10 +64,21 @@ export default {
     },
     mounted() {
         this.hub.coordinate = this.coordinate;
+        this.hub.active = this.active;
     },
-    render(h) {
-        const vm = this;
-        const v = {
+    render: function(h: typeof Vue.prototype.$createElement) {
+        var vm = this;
+        const el = document.createElement('div')
+        // el.style
+        var v: {
+            'class': string[],
+            style: {
+                [name: string]: any,
+            },
+            on: {
+                [name: string]: any,
+            },
+        } = {
             'class': ['ro-touch'],
             style: {
                 width: '100%',
@@ -55,4 +97,5 @@ export default {
         }
         return h('div', v, this.$slots.default);
     },
+    // template: `<div class="ro-touch" style="width:100%;height:100%" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend"><slot></slot></div>`,
 };

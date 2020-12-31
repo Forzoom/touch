@@ -1,16 +1,21 @@
-// @flow
+import {
+    TouchHubOptions,
+} from '../types/index';
 
 type Position = {
     x: number,
     y: number
 };
-
 type AXIS = number;
 
 const noop = () => {};
 
 const AXIS_X = 1;
 const AXIS_Y = 2;
+
+const defaultOptions: Partial<TouchHubOptions> = {
+    flingThresh: 1,
+};
 
 export const supportTouchEvent = 'ontouchstart' in window;
 
@@ -23,18 +28,25 @@ export const supportTouchEvent = 'ontouchstart' in window;
  * touch-up(startPos, currentPos)
  */
 export class TouchHub {
+    options: TouchHubOptions;
 
     active: boolean;
-    speedX: Array<number>; // 关于x轴速度记录
-    speedXIdx: number; // 关于x轴速度记录的index
-    speedY: Array<number>; // 关于y轴速度记录
-    speedYIdx: number; // 关于y轴速度记录的index
+    /** 关于x轴速度记录 */
+    speedX: Array<number>;
+    /** 关于x轴速度记录的index */
+    speedXIdx: number;
+    /** 关于y轴速度记录 */
+    speedY: Array<number>;
+    /** 关于y轴速度记录的index */
+    speedYIdx: number;
 
     minFlingSpeed: number;
     maxFlingSpeed: number;
 
-    startPos: Position; // 缓存记录
-    currentPos: Position; // 缓存记录
+    /** 缓存记录 */
+    startPos: Position;
+    /** 缓存记录 */
+    currentPos: Position;
 
     lastRecordTime: number;
 
@@ -59,17 +71,19 @@ export class TouchHub {
      * onTouchSlide
      * onTouchFling
      */
-    constructor() {
+    constructor(options?: Partial<TouchHubOptions>) {
         const self = this;
         // 是否停止检测
         self.active = true;
+
+        self.options = Object.assign({}, defaultOptions, options);
 
         self.speedX = [ 0, 0, ]; // 速度记录
         self.speedXIdx = 0;
         self.speedY = [ 0, 0, ];
         self.speedYIdx = 0;
 
-        self.minFlingSpeed = 1; // px/millsecond
+        self.minFlingSpeed = self.options.flingThresh; // px/millsecond
         self.maxFlingSpeed = 1;
 
         // 当前主要检测的轴向
@@ -98,12 +112,12 @@ export class TouchHub {
         }
     }
 
-    start(event: any): void {
+    public start(event: any): void {
+        console.log('start');
         const self = this;
         if (!self.active) {
             return;
         }
-
         let e = null;
         if (supportTouchEvent) {
             e = event.changedTouches[0];
@@ -128,12 +142,12 @@ export class TouchHub {
         self.lastRecordTime = Date.now();
     }
 
-    move(event: any): void {
+    public move(event: any): void {
+        console.log('move');
         const self = this;
         if (!self.active) {
             return;
         }
-
         let e = null;
         if (supportTouchEvent) {
             e = event.touches[0];
@@ -167,18 +181,18 @@ export class TouchHub {
         self.recordSpeed(offsetY, AXIS_Y, now);
         self.lastRecordTime = now;
 
-        // preventDefault
+        // preventDefault，是为了阻止后面元素的滚动
         if (self.moveCoordinate == self.coordinate) {
             event.preventDefault();
         }
     }
 
-    end(event: any): void {
-        const self = this;
+    public end(event: any): void {
+        console.log('end');
+        var self = this;
         if (!self.active) {
             return;
         }
-
         let e = null;
         if (supportTouchEvent) {
             e = event.changedTouches[0];
@@ -186,10 +200,10 @@ export class TouchHub {
             e = event;
             self.mouseStatus = 0;
         }
-        // const pageX = touch.clientX;
-        // const pageY = touch.clientY;
-        // const offsetX = pageX - self.currentPos.x;
-        // const offsetY = pageY - self.currentPos.y; // 为了触发touch.move
+        // var pageX = touch.clientX;
+        // var pageY = touch.clientY;
+        // var offsetX = pageX - self.currentPos.x;
+        // var offsetY = pageY - self.currentPos.y; // 为了触发touch.move
         self._setCurrentPosition(e.clientX, e.clientY);
 
         const speedX = (self.speedX[0] + self.speedX[1]) / 2;
@@ -198,14 +212,14 @@ export class TouchHub {
             startPos: Object.assign({}, self.startPos),
             currentPos: Object.assign({}, self.currentPos),
         });
-        if (self.coordinate === 'x' ? Math.abs(speedX) > self.minFlingSpeed : Math.abs(speedY) > self.minFlingSpeed) {
+        if (self.moveCoordinate === 'x' ? Math.abs(speedX) > self.minFlingSpeed : Math.abs(speedY) > self.minFlingSpeed) {
             self._fling({
                 startPos: Object.assign({}, self.startPos),
                 currentPos: Object.assign({}, self.currentPos),
                 speedX,
                 speedY,
             });
-        } else if (self.coordinate === 'x' ? Math.abs(self.currentPos.x - self.startPos.x) > 0 : Math.abs(self.currentPos.y - self.startPos.y) > 0) {
+        } else if (self.moveCoordinate === 'x' ? Math.abs(self.currentPos.x - self.startPos.x) > 0 : Math.abs(self.currentPos.y - self.startPos.y) > 0) {
             self._slide({
                 startPos: Object.assign({}, self.startPos),
                 currentPos: Object.assign({}, self.currentPos),
@@ -220,10 +234,13 @@ export class TouchHub {
         self.moveCoordinate = null;
     }
 
-    recordSpeed(offset: number, axis: AXIS, now: number): void {
-        const self = this;
-        const duration = now - self.lastRecordTime;
-        const speed = offset / duration;
+    /**
+     * 记录速度
+     */
+    public recordSpeed(offset: number, axis: AXIS, now: number): void {
+        var self = this;
+        var duration = now - self.lastRecordTime;
+        var speed = offset / duration;
         // 记录数据
         if (axis === AXIS_X) {
             self.speedX[(self.speedXIdx++) & 1] = speed; // 让speedIdx保存为0或者1的情况
@@ -232,40 +249,64 @@ export class TouchHub {
         }
     }
 
-    work(active: boolean): void {
+    /**
+     * 允许开始工作
+     * @param active
+     */
+    public work(active): void {
         this.active = active;
     }
 
-    _setStartPosition(x: number, y: number): void {
+    /**
+     * 记录开始位置
+     * @param x
+     * @param y
+     */
+    public _setStartPosition(x: number, y: number): void {
         this.startPos.x = x;
         this.startPos.y = y;
     }
 
     /**
-     * 
+     * 记录当前位置
      */
-    _setCurrentPosition(x: number, y: number): void {
+    public _setCurrentPosition(x: number, y: number): void {
         this.currentPos.x = x;
         this.currentPos.y = y;
     }
 
-    onTouchDown(cb: Function): void {
+    /**
+     * 当touch-down发生时应该调用
+     */
+    public onTouchDown(cb: Function): void {
         this._down = cb;
     }
 
-    onTouchUp(cb: Function): void {
+    /**
+     * 当touch-up发生时应该调用
+     */
+    public onTouchUp(cb: Function): void {
         this._up = cb;
     }
 
-    onTouchMove(cb: Function): void {
+    /**
+     * 当touch-move发生时应该调用
+     */
+    public onTouchMove(cb: Function): void {
         this._move = cb;
     }
 
-    onTouchSlide(cb: Function): void {
+    /**
+     * 当touch-slide发生时应该调用
+     */
+    public onTouchSlide(cb: Function): void {
         this._slide = cb;
     }
 
-    onTouchFling(cb: Function): void {
+    /**
+     * 当touch-fling发生时应该调用
+     */
+    public onTouchFling(cb: Function): void {
         this._fling = cb;
     }
 }
