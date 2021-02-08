@@ -1,4 +1,5 @@
 import {
+    Pos,
     TouchHubOptions,
 } from '../types/index';
 
@@ -28,41 +29,41 @@ export const supportTouchEvent = 'ontouchstart' in window;
  * touch-up(startPos, currentPos)
  */
 export class TouchHub {
-    options: TouchHubOptions;
+    public options: TouchHubOptions;
 
-    active: boolean;
+    public active: boolean;
     /** 关于x轴速度记录 */
-    speedX: Array<number>;
+    public speedX: Array<number>;
     /** 关于x轴速度记录的index */
-    speedXIdx: number;
+    public speedXIdx: number;
     /** 关于y轴速度记录 */
-    speedY: Array<number>;
+    public speedY: Array<number>;
     /** 关于y轴速度记录的index */
-    speedYIdx: number;
+    public speedYIdx: number;
 
-    minFlingSpeed: number;
-    maxFlingSpeed: number;
+    public minFlingSpeed: number;
+    public maxFlingSpeed: number;
 
     /** 缓存记录 */
-    startPos: Position;
+    public startPos: Position;
     /** 缓存记录 */
-    currentPos: Position;
+    public currentPos: Position;
 
-    lastRecordTime: number;
+    public lastRecordTime: number;
 
     // 主要检测哪个轴向上的内容
-    coordinate: string;
-    moveCoordinate: string;
+    public coordinate: string;
+    public moveCoordinate: string;
 
     // mouse事件所使用的变量
-    mouseStatus: number;
+    public mouseStatus: number;
 
     // 所有的触发函数
-    _down: Function;
-    _up: Function;
-    _move: Function;
-    _slide: Function;
-    _fling: Function;
+    public _down: Function;
+    public _up: Function;
+    public _move: Function;
+    public _slide: Function;
+    public _fling: Function;
 
     /**
      * onTouchDown
@@ -71,16 +72,16 @@ export class TouchHub {
      * onTouchSlide
      * onTouchFling
      */
-    constructor(options?: Partial<TouchHubOptions>) {
+    public constructor(options?: Partial<TouchHubOptions>) {
         const self = this;
         // 是否停止检测
         self.active = true;
 
         self.options = Object.assign({}, defaultOptions, options);
 
-        self.speedX = [ 0, 0, ]; // 速度记录
+        self.speedX = [ 0, 0 ]; // 速度记录
         self.speedXIdx = 0;
-        self.speedY = [ 0, 0, ];
+        self.speedY = [ 0, 0 ];
         self.speedYIdx = 0;
 
         self.minFlingSpeed = self.options.flingThresh; // px/millsecond
@@ -112,23 +113,15 @@ export class TouchHub {
         }
     }
 
-    public start(event: any): void {
+    public start(pos: Pos): void {
         console.log('start');
         const self = this;
         if (!self.active) {
             return;
         }
-        let e = null;
-        if (supportTouchEvent) {
-            e = event.changedTouches[0];
-        } else {
-            e = event;
-            self.mouseStatus = 1;
-        }
 
         // 获得当前的位置数据
-        const x = e.clientX;
-        const y = e.clientY;
+        const { x, y } = pos;
         self._setStartPosition(x, y);
         self._setCurrentPosition(x, y);
 
@@ -142,24 +135,14 @@ export class TouchHub {
         self.lastRecordTime = Date.now();
     }
 
-    public move(event: any): void {
+    public move(pos: Pos): void {
         console.log('move');
         const self = this;
         if (!self.active) {
             return;
         }
-        let e = null;
-        if (supportTouchEvent) {
-            e = event.touches[0];
-        } else {
-            e = event;
-            if (self.mouseStatus != 1) {
-                return;
-            }
-        }
 
-        const pageX = e.clientX;
-        const pageY = e.clientY;
+        const { x: pageX, y: pageY } = pos;
         const offsetX = pageX - self.currentPos.x;
         const offsetY = pageY - self.currentPos.y;
         self._setCurrentPosition(pageX, pageY);
@@ -187,24 +170,24 @@ export class TouchHub {
         }
     }
 
-    public end(event: any): void {
+    public end(pos: Pos): void {
         console.log('end');
         var self = this;
         if (!self.active) {
             return;
         }
-        let e = null;
-        if (supportTouchEvent) {
-            e = event.changedTouches[0];
-        } else {
-            e = event;
-            self.mouseStatus = 0;
-        }
+        // let e = null;
+        // if (supportTouchEvent) {
+        //     e = event.changedTouches[0];
+        // } else {
+        //     e = event;
+        //     self.mouseStatus = 0;
+        // }
         // var pageX = touch.clientX;
         // var pageY = touch.clientY;
         // var offsetX = pageX - self.currentPos.x;
         // var offsetY = pageY - self.currentPos.y; // 为了触发touch.move
-        self._setCurrentPosition(e.clientX, e.clientY);
+        self._setCurrentPosition(pos.x, pos.y);
 
         const speedX = (self.speedX[0] + self.speedX[1]) / 2;
         const speedY = (self.speedY[0] + self.speedY[1]) / 2;

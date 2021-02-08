@@ -2,7 +2,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
   (global = global || self, factory(global.Touch = {}));
-}(this, function (exports) { 'use strict';
+}(this, (function (exports) { 'use strict';
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -33,7 +33,7 @@
   var defaultOptions = {
     flingThresh: 1
   };
-  var supportTouchEvent = 'ontouchstart' in window;
+  var supportTouchEvent = ('ontouchstart' in window);
   /**
    * 事件
    * touch-down(startPos, currentPos)
@@ -43,9 +43,7 @@
    * touch-up(startPos, currentPos)
    */
 
-  var TouchHub =
-  /*#__PURE__*/
-  function () {
+  var TouchHub = /*#__PURE__*/function () {
     /** 关于x轴速度记录 */
 
     /** 关于x轴速度记录的index */
@@ -111,26 +109,17 @@
 
     _createClass(TouchHub, [{
       key: "start",
-      value: function start(event) {
+      value: function start(pos) {
         console.log('start');
         var self = this;
 
         if (!self.active) {
           return;
-        }
-
-        var e = null;
-
-        if (supportTouchEvent) {
-          e = event.changedTouches[0];
-        } else {
-          e = event;
-          self.mouseStatus = 1;
         } // 获得当前的位置数据
 
 
-        var x = e.clientX;
-        var y = e.clientY;
+        var x = pos.x,
+            y = pos.y;
 
         self._setStartPosition(x, y);
 
@@ -147,7 +136,7 @@
       }
     }, {
       key: "move",
-      value: function move(event) {
+      value: function move(pos) {
         console.log('move');
         var self = this;
 
@@ -155,20 +144,8 @@
           return;
         }
 
-        var e = null;
-
-        if (supportTouchEvent) {
-          e = event.touches[0];
-        } else {
-          e = event;
-
-          if (self.mouseStatus != 1) {
-            return;
-          }
-        }
-
-        var pageX = e.clientX;
-        var pageY = e.clientY;
+        var pageX = pos.x,
+            pageY = pos.y;
         var offsetX = pageX - self.currentPos.x;
         var offsetY = pageY - self.currentPos.y;
 
@@ -198,28 +175,26 @@
       }
     }, {
       key: "end",
-      value: function end(event) {
+      value: function end(pos) {
         console.log('end');
         var self = this;
 
         if (!self.active) {
           return;
-        }
-
-        var e = null;
-
-        if (supportTouchEvent) {
-          e = event.changedTouches[0];
-        } else {
-          e = event;
-          self.mouseStatus = 0;
-        } // var pageX = touch.clientX;
+        } // let e = null;
+        // if (supportTouchEvent) {
+        //     e = event.changedTouches[0];
+        // } else {
+        //     e = event;
+        //     self.mouseStatus = 0;
+        // }
+        // var pageX = touch.clientX;
         // var pageY = touch.clientY;
         // var offsetX = pageX - self.currentPos.x;
         // var offsetY = pageY - self.currentPos.y; // 为了触发touch.move
 
 
-        self._setCurrentPosition(e.clientX, e.clientY);
+        self._setCurrentPosition(pos.x, pos.y);
 
         var speedX = (self.speedX[0] + self.speedX[1]) / 2;
         var speedY = (self.speedY[0] + self.speedY[1]) / 2;
@@ -391,13 +366,52 @@
     },
     methods: {
       touchstart: function touchstart(e) {
-        this.hub.start.call(this.hub, e);
+        var pos = {
+          x: 0,
+          y: 0
+        };
+
+        if (supportTouchEvent) {
+          pos.x = e.changedTouches[0].clientX;
+          pos.y = e.changedTouches[0].clientY;
+        } else {
+          pos.x = e.clientX;
+          pos.y = e.clientY; // self.mouseStatus = 1;
+        }
+
+        this.hub.start(pos);
       },
       touchmove: function touchmove(e) {
-        this.hub.move.call(this.hub, e);
+        var pos = {
+          x: 0,
+          y: 0
+        };
+
+        if (supportTouchEvent) {
+          pos.x = e.touches[0].clientX;
+          pos.y = e.touches[0].clientY;
+        } else {
+          pos.x = e.clientX;
+          pos.y = e.clientY; // self.mouseStatus = 1;
+        }
+
+        this.hub.move(pos);
       },
       touchend: function touchend(e) {
-        this.hub.end.call(this.hub, e);
+        var pos = {
+          x: 0,
+          y: 0
+        };
+
+        if (supportTouchEvent) {
+          pos.x = e.changedTouches[0].clientX;
+          pos.y = e.changedTouches[0].clientY;
+        } else {
+          pos.x = e.clientX;
+          pos.y = e.clientY; // self.mouseStatus = 0;
+        }
+
+        this.hub.end(pos);
       }
     },
     created: function created() {
@@ -436,22 +450,22 @@
       };
 
       if (supportTouchEvent) {
-        v.on.touchstart = vm.hub.start.bind(vm.hub);
-        v.on.touchmove = vm.hub.move.bind(vm.hub);
+        v.on.touchstart = this.touchstart;
+        v.on.touchmove = this.touchmove;
         v.on.touchend = vm.hub.end.bind(vm.hub);
       } else {
-        v.on.mousedown = vm.hub.start.bind(vm.hub);
-        v.on.mousemove = vm.hub.move.bind(vm.hub);
+        v.on.mousedown = this.touchstart;
+        v.on.mousemove = this.touchmove;
         v.on.mouseup = vm.hub.end.bind(vm.hub);
       }
 
       return h('div', v, this.$slots["default"]);
-    } // template: `<div class="ro-touch" style="width:100%;height:100%" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend"><slot></slot></div>`,
-
+    }
   };
 
   exports.TouchDetector = TouchDetector;
+  exports.TouchHub = TouchHub;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-}));
+})));

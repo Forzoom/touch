@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import { Pos } from '../types';
 import {
     supportTouchEvent,
     TouchHub,
@@ -44,14 +45,41 @@ export const TouchDetector = {
         },
     },
     methods: {
-        touchstart(e) {
-            this.hub.start.call(this.hub, e);
+        touchstart(e: TouchEvent | MouseEvent) {
+            const pos: Pos = { x: 0, y: 0 };
+            if (supportTouchEvent) {
+                pos.x = (e as TouchEvent).changedTouches[0].clientX;
+                pos.y = (e as TouchEvent).changedTouches[0].clientY;
+            } else {
+                pos.x = (e as MouseEvent).clientX;
+                pos.y = (e as MouseEvent).clientY;
+                // self.mouseStatus = 1;
+            }
+            (this.hub as TouchHub).start(pos);
         },
-        touchmove(e) {
-            this.hub.move.call(this.hub, e);
+        touchmove(e: TouchEvent | MouseEvent) {
+            const pos: Pos = { x: 0, y: 0 };
+            if (supportTouchEvent) {
+                pos.x = (e as TouchEvent).touches[0].clientX;
+                pos.y = (e as TouchEvent).touches[0].clientY;
+            } else {
+                pos.x = (e as MouseEvent).clientX;
+                pos.y = (e as MouseEvent).clientY;
+                // self.mouseStatus = 1;
+            }
+            (this.hub as TouchHub).move(pos);
         },
-        touchend(e) {
-            this.hub.end.call(this.hub, e);
+        touchend(e: TouchEvent | MouseEvent) {
+            const pos: Pos = { x: 0, y: 0 };
+            if (supportTouchEvent) {
+                pos.x = (e as TouchEvent).changedTouches[0].clientX;
+                pos.y = (e as TouchEvent).changedTouches[0].clientY;
+            } else {
+                pos.x = (e as MouseEvent).clientX;
+                pos.y = (e as MouseEvent).clientY;
+                // self.mouseStatus = 0;
+            }
+            (this.hub as TouchHub).end(pos);
         },
     },
     created() {
@@ -87,15 +115,14 @@ export const TouchDetector = {
             on: {},
         };
         if (supportTouchEvent) {
-            v.on.touchstart = vm.hub.start.bind(vm.hub);
-            v.on.touchmove = vm.hub.move.bind(vm.hub);
+            v.on.touchstart = this.touchstart;
+            v.on.touchmove = this.touchmove;
             v.on.touchend = vm.hub.end.bind(vm.hub);
         } else {
-            v.on.mousedown = vm.hub.start.bind(vm.hub);
-            v.on.mousemove = vm.hub.move.bind(vm.hub);
+            v.on.mousedown = this.touchstart;
+            v.on.mousemove = this.touchmove;
             v.on.mouseup = vm.hub.end.bind(vm.hub);
         }
         return h('div', v, this.$slots.default);
     },
-    // template: `<div class="ro-touch" style="width:100%;height:100%" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend"><slot></slot></div>`,
 };

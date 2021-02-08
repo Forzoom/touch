@@ -1,6 +1,6 @@
 {
   "name": "@forzoom/touch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "touch component",
   "main": "dist/touch.cjs.js",
   "module": "dist/touch.esm.js",
