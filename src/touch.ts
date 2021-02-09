@@ -96,8 +96,6 @@ export const TouchDetector = {
     },
     render: function(h: typeof Vue.prototype.$createElement) {
         var vm = this;
-        const el = document.createElement('div')
-        // el.style
         var v: {
             'class': string[],
             style: {
@@ -117,11 +115,11 @@ export const TouchDetector = {
         if (supportTouchEvent) {
             v.on.touchstart = this.touchstart;
             v.on.touchmove = this.touchmove;
-            v.on.touchend = vm.hub.end.bind(vm.hub);
+            v.on.touchend = this.touchend;
         } else {
             v.on.mousedown = this.touchstart;
             v.on.mousemove = this.touchmove;
-            v.on.mouseup = vm.hub.end.bind(vm.hub);
+            v.on.mouseup = this.touchend;
         }
         return h('div', v, this.$slots.default);
     },

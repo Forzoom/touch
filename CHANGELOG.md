@@ -44,3 +44,12 @@
 
 1. 从webpack修改为rollup打包
 1. 使用typescript进行重写
+
+#### 0.1.1
+
+1. 分离并导出TouchHub
+1. 优化TouchDetector逻辑
+
+#### 0.1.2
+
+1. fix: 修复TouchDetector中touchend触发不正确问题
